@@ -8,12 +8,13 @@ const GroupedBarchart = () => {
     TECHNIQUE_NAMES: ["hyfm", "fmsa", "salssa"],
     WIDTH: 1000,
     HEIGHT: 400,
+    COLORS: ["#002642", "#840032", "#e59500"],
   };
   const ref = useRef();
 
   useEffect(() => {
     // set the dimensions and margins of the graph
-    const margin = { top: 10, right: 30, bottom: 20, left: 50 },
+    const margin = { top: 10, right: 30, bottom: 100, left: 50 },
       width = GROUPED_BARCHART_CONFIG.WIDTH - margin.left - margin.right,
       height = GROUPED_BARCHART_CONFIG.HEIGHT - margin.top - margin.bottom;
 
@@ -28,7 +29,6 @@ const GroupedBarchart = () => {
 
     // Parse the Data
     d3.csv(dataset).then(function (og_data) {
-
       // process the data, compute averages for only one technique
       const average_numbers = {};
       const std_numbers = {};
@@ -99,10 +99,15 @@ const GroupedBarchart = () => {
 
       // Add X axis
       const x = d3.scaleBand().domain(groups).range([0, width]).padding([0.2]);
-      svg
+      const xAxis = svg
         .append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).tickSize(0));
+        .call(d3.axisBottom(x).tickSize(0))
+        .selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");
 
       // Add Y axis
       const y = d3.scaleLinear().domain([0, 8]).range([height, 0]);
@@ -119,7 +124,7 @@ const GroupedBarchart = () => {
       const color = d3
         .scaleOrdinal()
         .domain(subgroups)
-        .range(["#e41a1c", "#377eb8", "#4daf4a"]);
+        .range(GROUPED_BARCHART_CONFIG.COLORS);
 
       // Show the bars
       svg
@@ -141,10 +146,85 @@ const GroupedBarchart = () => {
         .attr("width", xSubgroup.bandwidth())
         .attr("height", (d) => height - y(d.value))
         .attr("fill", (d) => color(d.key));
+
+      // Add one dot in the legend for each name.
+      svg
+        .selectAll("mydots")
+        .data(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES)
+        .enter()
+        .append("circle")
+        .attr("cx", 850)
+        .attr("cy", function (d, i) {
+          return 10 + i * 25;
+        }) // 100 is where the first dot appears. 25 is the distance between dots
+        .attr("r", 7)
+        .style("fill", function (d) {
+          return color(d);
+        });
+
+      // Add one dot in the legend for each name.
+      svg
+        .selectAll("mylabels")
+        .data(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES)
+        .enter()
+        .append("text")
+        .attr("x", 875)
+        .attr("y", function (d, i) {
+          return 14 + i * 25;
+        }) // 100 is where the first dot appears. 25 is the distance between dots
+        .style("fill", function (d) {
+          return color(d);
+        })
+        .text(function (d) {
+          return d;
+        })
+        .attr("text-anchor", "left")
+        .style("alignment-baseline", "middle");
+
+      // console.log("before for loop");
+      // for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
+      //   console.log(i);
+      //   svg
+      //     .append("circle")
+      //     .attr("cx", 800)
+      //     .attr("cy", 50 + i * 25)
+      //     .attr("r", 6)
+      //     .style("fill", GROUPED_BARCHART_CONFIG.COLORS[i]);
+
+      //   svg
+      //     .append("text")
+      //     .attr("x", 825)
+      //     .attr("y", 53 + i * 25)
+      //     .text(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i])
+      //     .style("font-size", "15px")
+      //     .attr("alignment-baseline", "middle");
+      // }
+
+      // svg
+      //   .append("circle")
+      //   .attr("cx", 200)
+      //   .attr("cy", 160)
+      //   .attr("r", 6)
+      //   .style("fill", GROUPED_BARCHART_CONFIG.COLORS[1]);
+
+      // svg
+      //   .append("text")
+      //   .attr("x", 220)
+      //   .attr("y", 160)
+      //   .text(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[1])
+      //   .style("font-size", "15px")
+      //   .attr("alignment-baseline", "middle");
     });
   }, []);
 
-  return <svg width={GROUPED_BARCHART_CONFIG.WIDTH} height={GROUPED_BARCHART_CONFIG.HEIGHT} id="barchart" ref={ref} />;
+  return (
+    <svg
+      width={GROUPED_BARCHART_CONFIG.WIDTH}
+      height={GROUPED_BARCHART_CONFIG.HEIGHT}
+      id="barchart"
+      ref={ref}
+    />
+  );
 };
 
 export default GroupedBarchart;
