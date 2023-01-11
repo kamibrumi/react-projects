@@ -1,13 +1,11 @@
-import './App.css';
-import Circle from './components/Circle';
-import Circles from './components/Circles';
-import Axis from './components/Axis';
 import Barchart from './components/Barchart';
+import GroupedBarchart from './components/Grouped-Barchart';
 
 function App() {
   return (
     <div className="App">
-      <Barchart/>
+    <h1>Hello React + D3 world!</h1>
+    <Barchart/>
     </div>
   );
 }
