@@ -71,14 +71,18 @@ const GroupedBarchart = () => {
         average_numbers[app_name] = average_energy_savings_array;
       }
 
-      // reformat the data so it fits the input format for the grouped barplot.
+      // reformat the data so it fits the input format for the grouped barplot. also compute what's the minimum average in order to pass it to the d3 scale
       const average_data_arr = [];
+      var min = 1000;
+      var max = -1000;
       for (const [app_name, averages] of Object.entries(average_numbers)) {
         const group = {
           app_name: app_name,
         };
         for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
           group[GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i]] = averages[i];
+          if (averages[i] < min) { min = averages[i]; }
+          if (averages[i] > max) { max = averages[i]; }
         }
 
         average_data_arr.push(group);
@@ -110,8 +114,11 @@ const GroupedBarchart = () => {
         .attr("transform", "rotate(-65)");
 
       // Add Y axis
-      const y = d3.scaleLinear().domain([0, 8]).range([height, 0]);
+      const y = d3.scaleLinear().domain([min - 1, max + 1]).range([height, 0]); // min - 1 in the range because I want to give the negative values some space, same for the max and the positivve values
       svg.append("g").call(d3.axisLeft(y));
+
+      console.log("min", min);
+      console.log("y(-1.9699933406418222) = ", y(-1.9699933406418222));
 
       // Another scale for subgroup position?
       const xSubgroup = d3
@@ -142,10 +149,13 @@ const GroupedBarchart = () => {
         })
         .join("rect")
         .attr("x", (d) => xSubgroup(d.key))
-        .attr("y", (d) => y(d.value))
+        .attr("y", (d) => y(Math.max(0, d.value))) //y(d.value)) // in order to support negative values
         .attr("width", xSubgroup.bandwidth())
-        .attr("height", (d) => height - y(d.value))
+        .attr("height", (d) => Math.abs(y(d.value) - y(0)))//height - y(d.value))
         .attr("fill", (d) => color(d.key));
+
+        // .attr("y", function(d) { return y(Math.max(0, d.count)); })
+        // .attr("height", function(d) { return Math.abs(y(d.count) - y(0)); })  
 
       // Add one dot in the legend for each name.
       svg
@@ -180,40 +190,6 @@ const GroupedBarchart = () => {
         })
         .attr("text-anchor", "left")
         .style("alignment-baseline", "middle");
-
-      // console.log("before for loop");
-      // for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
-      //   console.log(i);
-      //   svg
-      //     .append("circle")
-      //     .attr("cx", 800)
-      //     .attr("cy", 50 + i * 25)
-      //     .attr("r", 6)
-      //     .style("fill", GROUPED_BARCHART_CONFIG.COLORS[i]);
-
-      //   svg
-      //     .append("text")
-      //     .attr("x", 825)
-      //     .attr("y", 53 + i * 25)
-      //     .text(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i])
-      //     .style("font-size", "15px")
-      //     .attr("alignment-baseline", "middle");
-      // }
-
-      // svg
-      //   .append("circle")
-      //   .attr("cx", 200)
-      //   .attr("cy", 160)
-      //   .attr("r", 6)
-      //   .style("fill", GROUPED_BARCHART_CONFIG.COLORS[1]);
-
-      // svg
-      //   .append("text")
-      //   .attr("x", 220)
-      //   .attr("y", 160)
-      //   .text(GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[1])
-      //   .style("font-size", "15px")
-      //   .attr("alignment-baseline", "middle");
     });
   }, []);
 
