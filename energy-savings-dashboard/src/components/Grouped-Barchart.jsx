@@ -29,9 +29,9 @@ const GroupedBarchart = () => {
 
     // Parse the Data
     d3.csv(dataset).then(function (og_data) {
+      console.log(og_data)
       // process the data, compute averages for only one technique
       const average_numbers = {};
-      const std_numbers = {};
       const count_numbers = {};
 
       for (var i = 0; i < og_data.length; i++) {
@@ -59,6 +59,11 @@ const GroupedBarchart = () => {
         count_numbers[app_name][idx] += 1;
       }
 
+      // compute the standard deviation and standard error
+      // each bar will have an associated standard deviation, then I will take that and divide it by the square root of the number of samples to obtain teh standard error
+      const std_numbers = {};
+
+
       // compute the averages and standard devs
       for (const [app_name, averages] of Object.entries(average_numbers)) {
         // console.log(`${key}: ${value}`);
@@ -72,21 +77,35 @@ const GroupedBarchart = () => {
       }
 
       // reformat the data so it fits the input format for the grouped barplot. also compute what's the minimum average in order to pass it to the d3 scale
-      const average_data_arr = [];
       var min = 1000;
       var max = -1000;
-      for (const [app_name, averages] of Object.entries(average_numbers)) {
-        const group = {
-          app_name: app_name,
-        };
-        for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
-          group[GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i]] = averages[i];
-          if (averages[i] < min) { min = averages[i]; }
-          if (averages[i] > max) { max = averages[i]; }
-        }
+      const average_data_arr = Object.keys(average_numbers).map(function(key) {
+        console.log("average_numbers[key]", average_numbers[key]);
+        if (d3.min(average_numbers[key]) < min) { min = d3.min(average_numbers[key]); }
+        if (d3.max(average_numbers[key]) > max) { max = d3.max(average_numbers[key]); }
 
-        average_data_arr.push(group);
-      }
+        return {app_name: key, ...Object.fromEntries(
+          GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES.map((technique_name, index) => [technique_name, average_numbers[key][index]]) // TODO: add here another ...ObjectEntries with the std errors
+      )};
+      });
+      console.log("count_numbers", count_numbers);
+
+
+      // const average_data_arr = [];
+      // var min = 1000;
+      // var max = -1000;
+      // for (const [app_name, averages] of Object.entries(average_numbers)) {
+      //   const group = {
+      //     app_name: app_name,
+      //   };
+      //   for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
+      //     group[GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i]] = averages[i];
+      //     if (averages[i] < min) { min = averages[i]; }
+      //     if (averages[i] > max) { max = averages[i]; }
+      //   }
+
+      //   average_data_arr.push(group);
+      // }
 
       const data = average_data_arr;
       console.log("data", data);
@@ -116,9 +135,6 @@ const GroupedBarchart = () => {
       // Add Y axis
       const y = d3.scaleLinear().domain([min - 1, max + 1]).range([height, 0]); // min - 1 in the range because I want to give the negative values some space, same for the max and the positivve values
       svg.append("g").call(d3.axisLeft(y));
-
-      console.log("min", min);
-      console.log("y(-1.9699933406418222) = ", y(-1.9699933406418222));
 
       // Another scale for subgroup position?
       const xSubgroup = d3
@@ -190,6 +206,18 @@ const GroupedBarchart = () => {
         })
         .attr("text-anchor", "left")
         .style("alignment-baseline", "middle");
+
+        // var data_fake = [[0, 50], [100, 80]];
+
+        // var lineGenerator = d3.line();
+        // var pathString = lineGenerator(data_fake);
+
+        // svg.select('path')
+        //   .attr('d', pathString);
+
+        // const lineGenerator = d3.line().x(d=>x(d.))
+
+
     });
   }, []);
 
