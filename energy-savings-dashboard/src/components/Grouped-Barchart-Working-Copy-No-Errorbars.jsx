@@ -1,5 +1,4 @@
 import * as d3 from "d3";
-import { scaleSqrt } from "d3";
 import { useEffect, useRef } from "react";
 import dataset from "../data/all_data_10986_energy_savings.csv";
 
@@ -32,54 +31,58 @@ const GroupedBarchart = () => {
     d3.csv(dataset).then(function (og_data) {
       console.log(og_data)
       // process the data, compute averages for only one technique
-      // const average_numbers = {};
-      // const count_numbers = {};
-      const data_per_app_per_technique = {}
+      const average_numbers = {};
+      const count_numbers = {};
 
       for (var i = 0; i < og_data.length; i++) {
         const og_data_row = og_data[i];
         const app_name = og_data_row["APP_NAME"];
-        if (!(app_name in data_per_app_per_technique)) {
+        if (!(app_name in average_numbers)) {
           // if the data we create doesn't have the app name as a key, we create it
-          data_per_app_per_technique[app_name] = 
-            Object.fromEntries(
-              GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES.map((technique_name) => [technique_name, []])
-            );
+          average_numbers[app_name] = new Array(
+            GROUPED_BARCHART_CONFIG.N_TECHNIQUES
+          ).fill(0);
+          count_numbers[app_name] = new Array(
+            GROUPED_BARCHART_CONFIG.N_TECHNIQUES
+          ).fill(0);
         }
-        data_per_app_per_technique[app_name][og_data_row["CONFIG"]].push(parseFloat(og_data_row["energy_savings"]));
+
+        // now add the energy savings to the right position in the energy savings average array
+        const idx = GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES.indexOf(
+          og_data_row["CONFIG"]
+        );
+
+        average_numbers[app_name][idx] += parseFloat(
+          og_data_row["energy_savings"]
+        );
+
+        count_numbers[app_name][idx] += 1;
       }
 
-      console.log("data_per_app_per_technique", data_per_app_per_technique);
-
-      // compute the average, standard deviation and standard error
+      // compute the standard deviation and standard error
       // each bar will have an associated standard deviation, then I will take that and divide it by the square root of the number of samples to obtain teh standard error
+      const std_numbers = {};
 
-      // data_per_app_per_technique
-      //  key - app name
-      //  value - object
-      //    key - technique name
-      //    value - array of all numbers
+
+      // compute the averages and standard devs
+      for (const [app_name, averages] of Object.entries(average_numbers)) {
+        // console.log(`${key}: ${value}`);
+        const average_energy_savings_array = [];
+        for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
+          average_energy_savings_array.push(
+            averages[i] / count_numbers[app_name][i]
+          );
+        }
+        average_numbers[app_name] = average_energy_savings_array;
+      }
 
       // reformat the data so it fits the input format for the grouped barplot. also compute what's the minimum average in order to pass it to the d3 scale
       var min = 1000;
       var max = -1000;
-      const data = Object.keys(data_per_app_per_technique).map(function(key) {
-        console.log("average_numbers[key]", data_per_app_per_technique[key]);
-        // if (d3.min(average_numbers[key]) < min) { min = d3.min(average_numbers[key]); }
-        // if (d3.max(average_numbers[key]) > max) { max = d3.max(average_numbers[key]); }
-
-        const means_and_stderrors_by_appname_and_technique_arr = GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES.map(function(technique) {
-          const numbers_for_this_app_and_technique = data_per_app_per_technique[key][technique];
-          const technique_mean = technique + "_mean";
-          const technique_std_error = technique + "_stderr";
-          return {
-            technique: technique,
-            [technique_mean]: d3.mean(numbers_for_this_app_and_technique),
-            [technique_std_error]: d3.deviation(numbers_for_this_app_and_technique)/scaleSqrt(d3.count(numbers_for_this_app_and_technique)),
-          }
-        });
-
-        // TODO: left here where I will have to figure out how to convert all this data in to the object I drew on paper (*)
+      const average_data_arr = Object.keys(average_numbers).map(function(key) {
+        console.log("average_numbers[key]", average_numbers[key]);
+        if (d3.min(average_numbers[key]) < min) { min = d3.min(average_numbers[key]); }
+        if (d3.max(average_numbers[key]) > max) { max = d3.max(average_numbers[key]); }
 
         return {app_name: key, ...Object.fromEntries(
           GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES.map((technique_name, index) => [technique_name, average_numbers[key][index]]) // TODO: add here another ...ObjectEntries with the std errors
@@ -88,11 +91,32 @@ const GroupedBarchart = () => {
       console.log("count_numbers", count_numbers);
 
 
+      // const average_data_arr = [];
+      // var min = 1000;
+      // var max = -1000;
+      // for (const [app_name, averages] of Object.entries(average_numbers)) {
+      //   const group = {
+      //     app_name: app_name,
+      //   };
+      //   for (var i = 0; i < GROUPED_BARCHART_CONFIG.N_TECHNIQUES; i++) {
+      //     group[GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES[i]] = averages[i];
+      //     if (averages[i] < min) { min = averages[i]; }
+      //     if (averages[i] > max) { max = averages[i]; }
+      //   }
+
+      //   average_data_arr.push(group);
+      // }
+
+      const data = average_data_arr;
+      console.log("data", data);
+
+      // List of subgroups = header of the csv files = soil condition here
+      // const subgroups = data.columns.slice(1);
       const subgroups = GROUPED_BARCHART_CONFIG.TECHNIQUE_NAMES;
       console.log("subgroups", subgroups);
 
       // List of groups = species here = value of the first column called group -> I show them on the X axis
-      const groups = Object.keys(data_per_app_per_technique);
+      const groups = data.map((d) => d.app_name);
 
       console.log("groups", groups);
 
