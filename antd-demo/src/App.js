@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { Layout, Menu, theme } from "antd";
 import "antd/dist/reset.css";
+import IntroSider from "./components/intro-sider/intro-sider.component";
 import { 
   AppstoreOutlined,
   BarChartOutlined,
@@ -58,7 +59,7 @@ const App = () => {
             background: 'rgba(255, 255, 255, 0.2)',
           }}
         />
-        <Menu theme="dark" mode="inline" defaultSelectedKeys={['4']} items={items} />
+        <IntroSider/>
       </Sider>
       <Layout
         className="site-layout"
@@ -71,7 +72,7 @@ const App = () => {
             padding: 0,
             background: colorBgContainer,
           }}
-        />
+        ><Navigation /></Header>
         <Content
           style={{
             margin: '24px 16px 0',
